@@ -17,35 +17,40 @@
         }
 
         .main-container {
-            width: 85vw;
+            width: 75vw;
             margin: 0 auto;
             padding: 60px 0;
         }
 
+        @media (max-width: 1024px) {
+            .main-container { width: 90vw; }
+        }
+
         .post-it-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 25px;
             margin-bottom: 50px;
+            align-items: start;
+        }
+
+        @media (max-width: 768px) {
+            .post-it-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
         .post-it {
             padding: 25px;
-            min-height: 200px;
+            height: auto; 
             display: flex;
             flex-direction: column;
             box-shadow: 10px 10px 20px rgba(0,0,0,0.6);
             color: #2d3436;
+            transform: rotate(var(--r));
             transition: all 0.3s ease;
+            cursor: default;
             border-radius: 2px;
             position: relative;
-            animation: fadeIn 0.5s ease forwards;
-            opacity: 0;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            overflow: hidden;
         }
 
         .post-it::before {
@@ -57,110 +62,111 @@
             opacity: 0.8;
         }
 
+        .post-it:hover {
+            transform: scale(1.08) rotate(0deg) !important;
+            z-index: 20;
+            box-shadow: 15px 15px 30px rgba(0,0,0,0.8);
+        }
+
         .post-it-text {
+            font-family: 'Noto Serif KR', serif;
             font-weight: 500;
-            font-size: 1.05rem;
+            font-size: 1rem;
             line-height: 1.8;
-            word-break: keep-all;
+            text-align: justify;
+            word-break: break-all;
+            overflow-wrap: break-word;
             white-space: pre-wrap; 
             margin-bottom: 20px;
-            flex-grow: 1;
+            min-height: 100px;
+            letter-spacing: -0.01em;
         }
 
         .post-it-date {
             font-size: 0.75rem;
             text-align: right;
-            opacity: 0.6;
+            opacity: 0.5;
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px dashed rgba(0,0,0,0.1);
         }
 
         .color-1 { background-color: #fff9c4; --stripe: #fbc02d; }
-        .color-2 { background-color: #fce4ec; --stripe: #f06292; }
+        .color-2 { background-color: #f3e5f5; --stripe: #9c27b0; }
         .color-3 { background-color: #e3f2fd; --stripe: #2196f3; }
         .color-4 { background-color: #f1f8e9; --stripe: #4caf50; }
-        .color-5 { background-color: #ede7f6; --stripe: #9575cd; }
-
-        #loading-trigger {
-            height: 120px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #666;
-            font-size: 0.9rem;
-        }
     </style>
 </head>
 <body>
 
     <div class="main-container text-center">
         <header class="mb-12">
-            <h1 class="text-3xl md:text-4xl font-bold text-white mb-6">故서이초 선생님 온라인 추모관</h1>
-            <div class="inline-block px-6 py-2 border border-zinc-800 rounded-full mb-6">
-                <p id="total-count" class="text-amber-500 font-bold tracking-widest uppercase text-sm">데이터를 불러오는 중...</p>
-            </div>
-            <p class="text-zinc-500 italic text-base">"우리가 당신의 목소리가 되어 잊지 않겠습니다."</p>
+            <h1 class="text-3xl font-bold text-white mb-4 tracking-tight">故서이초 선생님 온라인 추모관</h1>
+            <p id="total-count" class="text-amber-600 font-bold tracking-widest uppercase mb-4 text-lg">데이터 연결 중...</p>
+            <p class="text-zinc-500 italic text-sm">"우리가 당신의 목소리가 되어 잊지 않겠습니다."</p>
         </header>
 
         <div id="post-it-area" class="post-it-grid"></div>
 
-        <div id="loading-trigger">
-            <span id="loading-msg">메시지를 불러오고 있습니다...</span>
+        <div class="flex justify-center mt-12">
+            <button onclick="renderRandomPostIts()" class="px-12 py-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded-full transition-all shadow-2xl border border-zinc-700 text-sm font-bold tracking-widest">
+                다른 메시지 보기
+            </button>
         </div>
 
-        <footer class="mt-20 opacity-30 text-[10px] tracking-[0.6em] pb-10 uppercase">
+        <footer class="mt-32 opacity-20 text-[10px] tracking-[0.6em] pb-10">
             REMEMBER 718 ARCHIVE
         </footer>
     </div>
 
     <script>
-        let allMessages = []; 
-        let currentIndex = 0;
-        const PAGE_SIZE = 40; 
-        let isLoading = false;
+        // 알려주신 외부 URL로 데이터 경로를 수정했습니다.
+        const DATA_URL = 'https://kftuofficial.github.io/518/messages.json'; 
+        let allMessages = [];
 
-        // 외부 JSON 파일을 순차적으로 불러옵니다.
-        window.onload = async () => {
-            try {
-                // messages.json 파일을 불러옵니다. (파일명이 다르면 아래를 수정하세요)
-                const response = await fetch('messages.json?v=' + Date.now());
-                if (!response.ok) throw new Error('파일을 찾을 수 없습니다.');
-                
-                allMessages = await response.json();
-
-                if (Array.isArray(allMessages) && allMessages.length > 0) {
-                    document.getElementById('total-count').innerText = `${allMessages.length.toLocaleString()} HEARTS REGISTERED`;
-                    loadMoreMessages(); 
-                    setupInfiniteScroll();
-                } else {
-                    document.getElementById('total-count').innerText = "데이터가 비어있습니다.";
-                }
-            } catch (error) {
-                console.error(error);
-                document.getElementById('total-count').innerText = "데이터 로딩 오류";
-                document.getElementById('loading-msg').innerText = "messages.json 파일을 찾을 수 없습니다.";
-            }
+        window.onload = () => {
+            fetchData();
         };
 
-        function loadMoreMessages() {
-            if (isLoading || currentIndex >= allMessages.length) {
-                if (currentIndex >= allMessages.length && allMessages.length > 0) {
-                    document.getElementById('loading-msg').innerText = "모든 기록을 확인했습니다.";
-                }
-                return;
-            }
-
-            isLoading = true;
-            const area = document.getElementById('post-it-area');
-            const fragment = document.createDocumentFragment();
-            
-            // 정렬 없이 원본 순서대로 40개씩 끊어옴
-            const nextBatch = allMessages.slice(currentIndex, currentIndex + PAGE_SIZE);
-            
-            nextBatch.forEach((msg, i) => {
-                const colorNum = (currentIndex + i) % 5 + 1; 
-                const rotation = (Math.random() * 3 - 1.5).toFixed(1); 
+        async function fetchData() {
+            const countEl = document.getElementById('total-count');
+            try {
+                // 외부 URL로부터 데이터를 가져옵니다.
+                const response = await fetch(DATA_URL);
+                if (!response.ok) throw new Error(`데이터를 불러올 수 없습니다. 상태 코드: ${response.status}`);
                 
-                const content = msg.text || msg.content || "추모 메시지";
-                const date = msg.date || "";
+                allMessages = await response.json();
+                
+                if(Array.isArray(allMessages) && allMessages.length > 0) {
+                    countEl.innerText = `${allMessages.length.toLocaleString()} HEARTS REGISTERED`;
+                    renderRandomPostIts();
+                } else {
+                    countEl.innerText = "데이터 형식이 올바르지 않습니다.";
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                countEl.innerText = "데이터 로딩 오류";
+                const errorArea = document.getElementById('post-it-area');
+                errorArea.innerHTML = `<p class="col-span-full text-zinc-500">데이터를 불러오는 중 문제가 발생했습니다.<br>${error.message}</p>`;
+            }
+        }
+
+        function renderRandomPostIts() {
+            const area = document.getElementById('post-it-area');
+            if (!area || !allMessages || allMessages.length === 0) return;
+            
+            area.innerHTML = '';
+            // 화면에 보여줄 포스트잇 개수
+            const countToDisplay = Math.min(20, allMessages.length);
+            const shuffled = [...allMessages].sort(() => 0.5 - Math.random()).slice(0, countToDisplay);
+            
+            shuffled.forEach(msg => {
+                const colorNum = Math.floor(Math.random() * 4) + 1;
+                const rotation = (Math.random() * 4 - 2).toFixed(1);
+                
+                // 데이터 필드명에 맞춰 텍스트와 날짜 추출
+                let content = msg.text || msg.content || "내용 없음";
+                const date = msg.date || "2023-07-20";
 
                 const div = document.createElement('div');
                 div.className = `post-it color-${colorNum}`;
@@ -169,22 +175,9 @@
                     <div class="post-it-text">${content}</div>
                     <div class="post-it-date">${date}</div>
                 `;
-                fragment.appendChild(div);
+                area.appendChild(div);
             });
-
-            area.appendChild(fragment);
-            currentIndex += PAGE_SIZE;
-            isLoading = false;
-        }
-
-        function setupInfiniteScroll() {
-            const observer = new IntersectionObserver((entries) => {
-                if (entries[0].isIntersecting) {
-                    loadMoreMessages();
-                }
-            }, { rootMargin: '200px' });
-
-            observer.observe(document.getElementById('loading-trigger'));
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     </script>
 </body>
