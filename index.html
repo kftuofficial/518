@@ -120,7 +120,6 @@
     </div>
 
     <script>
-        // 알려주신 외부 URL로 데이터 경로를 수정했습니다.
         const DATA_URL = 'https://kftuofficial.github.io/518/messages.json'; 
         let allMessages = [];
 
@@ -131,23 +130,43 @@
         async function fetchData() {
             const countEl = document.getElementById('total-count');
             try {
-                // 외부 URL로부터 데이터를 가져옵니다.
                 const response = await fetch(DATA_URL);
                 if (!response.ok) throw new Error(`데이터를 불러올 수 없습니다. 상태 코드: ${response.status}`);
                 
-                allMessages = await response.json();
+                // JSON 파싱 에러 방지를 위해 텍스트로 먼저 받은 뒤 후처리 시도
+                const rawText = await response.text();
+                
+                try {
+                    // 정상적인 JSON 파싱 시도
+                    allMessages = JSON.parse(rawText);
+                } catch (e) {
+                    // JSON 데이터 뒤에 불필요한 문자가 있는 경우(에러 메시지의 원인)를 대비한 정규식 추출
+                    console.warn("JSON 파싱 오류 발생. 수동 복구 시도 중...");
+                    const jsonMatch = rawText.match(/^[\s\S]*?\]/); // 배열이 닫히는 부분까지 추출
+                    if (jsonMatch) {
+                        allMessages = JSON.parse(jsonMatch[0]);
+                    } else {
+                        throw new Error("JSON 데이터 구조가 손상되었습니다.");
+                    }
+                }
                 
                 if(Array.isArray(allMessages) && allMessages.length > 0) {
                     countEl.innerText = `${allMessages.length.toLocaleString()} HEARTS REGISTERED`;
                     renderRandomPostIts();
                 } else {
-                    countEl.innerText = "데이터 형식이 올바르지 않습니다.";
+                    countEl.innerText = "데이터가 비어있거나 형식이 올바르지 않습니다.";
                 }
             } catch (error) {
                 console.error('Error fetching data:', error);
                 countEl.innerText = "데이터 로딩 오류";
                 const errorArea = document.getElementById('post-it-area');
-                errorArea.innerHTML = `<p class="col-span-full text-zinc-500">데이터를 불러오는 중 문제가 발생했습니다.<br>${error.message}</p>`;
+                errorArea.innerHTML = `
+                    <div class="col-span-full text-zinc-500 py-20 border border-zinc-800 rounded-lg">
+                        <p class="mb-4">데이터 로딩 중 문제가 발생했습니다.</p>
+                        <p class="text-xs opacity-50 font-mono">${error.message}</p>
+                        <p class="mt-6 text-xs">JSON 파일 끝에 불필요한 문자(공백, 쉼표 등)가 있는지 확인이 필요합니다.</p>
+                    </div>
+                `;
             }
         }
 
@@ -156,15 +175,13 @@
             if (!area || !allMessages || allMessages.length === 0) return;
             
             area.innerHTML = '';
-            // 화면에 보여줄 포스트잇 개수
-            const countToDisplay = Math.min(20, allMessages.length);
+            const countToDisplay = Math.min(24, allMessages.length);
             const shuffled = [...allMessages].sort(() => 0.5 - Math.random()).slice(0, countToDisplay);
             
             shuffled.forEach(msg => {
                 const colorNum = Math.floor(Math.random() * 4) + 1;
                 const rotation = (Math.random() * 4 - 2).toFixed(1);
                 
-                // 데이터 필드명에 맞춰 텍스트와 날짜 추출
                 let content = msg.text || msg.content || "내용 없음";
                 const date = msg.date || "2023-07-20";
 
