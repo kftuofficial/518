@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>故서이초 선생님 온라인 추모관</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Serif KR', serif;
+            background-color: #0c0c0c;
+            color: #d1d5db;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .main-container {
+            width: 75vw;
+            margin: 0 auto;
+            padding: 60px 0;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container { width: 90vw; }
+        }
+
+        .post-it-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+            margin-bottom: 50px;
+            align-items: start;
+        }
+
+        @media (max-width: 768px) {
+            .post-it-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .post-it {
+            padding: 25px;
+            height: auto; 
+            display: flex;
+            flex-direction: column;
+            box-shadow: 10px 10px 20px rgba(0,0,0,0.6);
+            color: #2d3436;
+            transform: rotate(var(--r));
+            transition: all 0.3s ease;
+            cursor: default;
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .post-it::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 8px;
+            background-color: var(--stripe);
+            opacity: 0.8;
+        }
+
+        .post-it:hover {
+            transform: scale(1.08) rotate(0deg) !important;
+            z-index: 20;
+            box-shadow: 15px 15px 30px rgba(0,0,0,0.8);
+        }
+
+        .post-it-text {
+            font-family: 'Noto Serif KR', serif;
+            font-weight: 500;
+            font-size: 1rem;
+            line-height: 1.8;
+            text-align: justify;
+            word-break: break-all;
+            overflow-wrap: break-word;
+            white-space: pre-wrap; 
+            margin-bottom: 20px;
+            min-height: 100px;
+            letter-spacing: -0.01em;
+        }
+
+        .post-it-date {
+            font-size: 0.75rem;
+            text-align: right;
+            opacity: 0.5;
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px dashed rgba(0,0,0,0.1);
+        }
+
+        .color-1 { background-color: #fff9c4; --stripe: #fbc02d; }
+        .color-2 { background-color: #f3e5f5; --stripe: #9c27b0; }
+        .color-3 { background-color: #e3f2fd; --stripe: #2196f3; }
+        .color-4 { background-color: #f1f8e9; --stripe: #4caf50; }
+    </style>
+</head>
+<body>
+
+    <div class="main-container text-center">
+        <header class="mb-12">
+            <h1 class="text-3xl font-bold text-white mb-4 tracking-tight">故서이초 선생님 온라인 추모관</h1>
+            <p id="total-count" class="text-amber-600 font-bold tracking-widest uppercase mb-4 text-lg">데이터 연결 중...</p>
+            <p class="text-zinc-500 italic text-sm">"우리가 당신의 목소리가 되어 잊지 않겠습니다."</p>
+        </header>
+
+        <div id="post-it-area" class="post-it-grid"></div>
+
+        <div class="flex justify-center mt-12">
+            <button onclick="renderRandomPostIts()" class="px-12 py-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded-full transition-all shadow-2xl border border-zinc-700 text-sm font-bold tracking-widest">
+                다른 메시지 보기
+            </button>
+        </div>
+
+        <footer class="mt-32 opacity-20 text-[10px] tracking-[0.6em] pb-10">
+            REMEMBER 718 ARCHIVE
+        </footer>
+    </div>
+
+    <script>
+        // 방금 확인하신 깃허브 주소를 여기에 넣었습니다.
+        const DATA_URL = 'https://raw.githubusercontent.com/kftuofficial/518/refs/heads/main/data.json';
+        let allMessages = [];
+
+        window.onload = () => {
+            fetchData();
+        };
+
+        async function fetchData() {
+            const countEl = document.getElementById('total-count');
+            try {
+                const response = await fetch(DATA_URL);
+                if (!response.ok) throw new Error('데이터를 가져올 수 없습니다.');
+                
+                allMessages = await response.json();
+                
+                if(Array.isArray(allMessages)) {
+                    countEl.innerText = `${allMessages.length.toLocaleString()} HEARTS REGISTERED`;
+                    renderRandomPostIts();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                countEl.innerText = "데이터 로딩 오류";
+            }
+        }
+
+        function renderRandomPostIts() {
+            const area = document.getElementById('post-it-area');
+            if (!area || allMessages.length === 0) return;
+            
+            area.innerHTML = '';
+            
+            const countToDisplay = Math.min(20, allMessages.length);
+            const shuffled = [...allMessages].sort(() => 0.5 - Math.random()).slice(0, countToDisplay);
+            
+            shuffled.forEach(msg => {
+                const colorNum = Math.floor(Math.random() * 4) + 1;
+                const rotation = (Math.random() * 4 - 2).toFixed(1);
+                
+                let rawText = msg.text || msg.content || "내용 없음";
+                const content = String(rawText).replace(/\\n/g, '\n');
+                const date = msg.date || msg.reg_date || "날짜 미상";
+
+                const div = document.createElement('div');
+                div.className = `post-it color-${colorNum}`;
+                div.style.setProperty('--r', `${rotation}deg`);
+                div.innerHTML = `
+                    <div class="post-it-text">${content}</div>
+                    <div class="post-it-date">${date}</div>
+                `;
+                area.appendChild(div);
+            });
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
